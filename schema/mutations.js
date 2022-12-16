@@ -102,6 +102,91 @@ const mutation = new GraphQLObjectType({
         }
       },
     },
+    updateProfile: {
+      type: UserType,
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        username: { type: GraphQLNonNull(GraphQLString) },
+        email: { type: GraphQLNonNull(GraphQLString) },
+      },
+      async resolve(parent, args, { req }) {
+        if (!req.user) throw new GraphQLError("Not Authorised!")
+        try {
+          const emailExists = await User.findOne({ email: args.email })
+
+          // console.log("user", req.user)
+          // console.log("em", emailExists.id)
+
+          if (emailExists.id !== req.user) {
+            throw new GraphQLError("Email already exists!")
+          }
+
+          const usernameExists = await User.findOne({
+            username: args.username,
+          })
+
+          // console.log("un", usernameExists.id)
+
+          if (usernameExists.id !== req.user) {
+            throw new GraphQLError("Username already exists!")
+          }
+
+          const updatedUser = await User.findByIdAndUpdate(
+            req.user,
+            {
+              $set: {
+                name: args.name,
+                username: args.username,
+                email: args.email,
+              },
+            },
+            { new: true }
+          )
+
+          return updatedUser
+        } catch (e) {
+          throw new GraphQLError(e.message)
+        }
+      },
+    },
+    changePassword: {
+      type: UserType,
+      args: {
+        password: { type: GraphQLNonNull(GraphQLString) },
+        newPwd: { type: GraphQLNonNull(GraphQLString) },
+      },
+      async resolve(parent, args, { req }) {
+        if (!req.user) throw new GraphQLError("Not Authorised!")
+        try {
+          const loggedUser = await User.findById(req.user)
+
+          if (!loggedUser) {
+            throw new GraphQLError("User not found!")
+          }
+
+          const passwordMatch = await bcrypt.compare(
+            args.password,
+            loggedUser.password
+          )
+
+          if (!passwordMatch) {
+            throw new GraphQLError("Incorrect old password!")
+          }
+
+          // Hash password
+          const salt = await bcrypt.genSalt(10)
+          const hashedPassword = await bcrypt.hash(args.newPwd, salt)
+
+          loggedUser.password = hashedPassword
+
+          const user = await loggedUser.save()
+
+          return user
+        } catch (e) {
+          throw new GraphQLError(e.message)
+        }
+      },
+    },
     addPost: {
       type: PostType,
       args: {
