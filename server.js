@@ -11,15 +11,15 @@ const schema = require("./schema/schema")
 const app = express()
 
 // Connectt to DB
-mongoose.connect(process.env.MONGO_URL).then(
-  () => {
+const conntectToDb = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URL)
     console.log("Connected to DB...")
-  },
-  (err) => {
-    console.log(err)
+  } catch (error) {
+    console.log(error)
+    process.exit(1)
   }
-)
-
+}
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN,
@@ -60,6 +60,8 @@ app.use(
   }))
 )
 
-app.listen(process.env.PORT, () =>
-  console.log(`Server started listening on port ${process.env.PORT}...`)
-)
+conntectToDb().then(() => {
+  app.listen(process.env.PORT, () =>
+    console.log(`Server started listening on port ${process.env.PORT}...`)
+  )
+})
