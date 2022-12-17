@@ -4,7 +4,7 @@ const User = require("../models/User")
 const Post = require("../models/Post")
 const Comment = require("../models/Comment")
 
-const { PostType, CommentType, UserType } = require("./types")
+const { PostType, CommentType, UserType, SearchType } = require("./types")
 
 const {
   GraphQLObjectType,
@@ -13,6 +13,7 @@ const {
   GraphQLString,
   GraphQLError,
   GraphQLID,
+  GraphQLInt,
 } = require("graphql")
 
 const RootQuery = new GraphQLObjectType({
@@ -23,6 +24,48 @@ const RootQuery = new GraphQLObjectType({
       resolve(parent, args, { req }) {
         if (!req.user) throw new GraphQLError("Not Authorised!")
         return User.findById(req.user).select("-password")
+      },
+    },
+    searchUsers: {
+      type: SearchType,
+      args: {
+        query: { type: GraphQLNonNull(GraphQLString) },
+        page: { type: GraphQLNonNull(GraphQLInt) },
+      },
+      async resolve(parent, args, { req }) {
+        const limit = 10 // 10 pre page
+        const results = {}
+
+        const startIndex = (args.page - 1) * limit
+        const endIndex = args.page * limit
+
+        if (endIndex < (await User.countDocuments().exec())) {
+          results.next = {
+            page: args.page + 1,
+            limit,
+          }
+        }
+
+        if (startIndex > 0) {
+          results.prev = {
+            page: page - 1,
+            limit,
+          }
+        }
+
+        try {
+          results.results = await User.find({
+            name: { $regex: args.query, $options: "i" },
+          })
+            .limit(limit)
+            .skip(startIndex)
+            .exec()
+
+          return results
+        } catch (e) {
+          console.log(e)
+          throw new GraphQLError(e.message)
+        }
       },
     },
     getUser: {

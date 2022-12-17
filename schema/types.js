@@ -6,6 +6,7 @@ const {
   GraphQLID,
   GraphQLString,
   GraphQLList,
+  GraphQLInt,
 } = require("graphql")
 
 const UserType = new GraphQLObjectType({
@@ -92,4 +93,21 @@ const PostType = new GraphQLObjectType({
   }),
 })
 
-module.exports = { UserType, CommentType, PostType }
+const PageType = new GraphQLObjectType({
+  name: "Page",
+  fields: () => ({
+    page: { type: GraphQLInt },
+    limit: { type: GraphQLInt },
+  }),
+})
+
+const SearchType = new GraphQLObjectType({
+  name: "Search",
+  fields: () => ({
+    next: { type: PageType },
+    prev: { type: PageType },
+    results: { type: new GraphQLList(UserType) },
+  }),
+})
+
+module.exports = { UserType, CommentType, PostType, SearchType }
