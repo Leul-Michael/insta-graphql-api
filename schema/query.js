@@ -22,7 +22,7 @@ const RootQuery = new GraphQLObjectType({
       type: UserType,
       resolve(parent, args, { req }) {
         if (!req.user) throw new GraphQLError("Not Authorised!")
-        return User.findById(req.user)
+        return User.findById(req.user).select("-password")
       },
     },
     getUser: {
@@ -33,9 +33,31 @@ const RootQuery = new GraphQLObjectType({
       async resolve(parent, args, { req }) {
         if (!req.user) throw new GraphQLError("Not Authorised!")
         try {
-          const requestedUser = await User.findById(args.userId)
+          const requestedUser = await User.findById(args.userId).select(
+            "-password"
+          )
           return requestedUser
         } catch {
+          throw new GraphQLError("No User Found!")
+        }
+      },
+    },
+    userSuggestions: {
+      type: new GraphQLList(UserType),
+      async resolve(parent, args, { req }) {
+        if (!req.user) throw new GraphQLError("Not Authorised!")
+        try {
+          const loggedUser = await User.findById(req.user).select("-password")
+
+          const suggestions = await User.find().select("-password")
+          const result = suggestions.filter((user) => {
+            return (
+              !loggedUser.following.includes(user.id) &&
+              user.id !== loggedUser.id
+            )
+          })
+          return result
+        } catch (e) {
           throw new GraphQLError("No User Found!")
         }
       },

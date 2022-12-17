@@ -264,7 +264,7 @@ const mutation = new GraphQLObjectType({
 
         if (user.followers.includes(req.user)) {
           const followerIndex = user.followers.indexOf(req.user)
-          const followingIndex = user.following.indexOf(user.id)
+          const followingIndex = currentUser.following.indexOf(user.id)
           user.followers.splice(followerIndex, 1)
           currentUser.following.splice(followingIndex, 1)
         } else {
