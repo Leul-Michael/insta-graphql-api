@@ -121,7 +121,7 @@ const mutation = new GraphQLObjectType({
             throw new GraphQLError("Email already exists!")
           }
 
-          const usernameExists = await User.findOne({
+          const usernameExists = await User.find({
             username: args.username,
           })
 
